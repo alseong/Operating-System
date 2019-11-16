@@ -255,7 +255,10 @@ int sys_execv(const char * prog_name, char ** args)
 	if (result) {
 		return result;
 	}
-  
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL); 
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -321,7 +324,6 @@ int sys_execv(const char * prog_name, char ** args)
   }
   kfree(args_kernel);
 
-  //FROM RUN_PROGRAM - modified
 	/* Warp to user mode. */
 	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
 

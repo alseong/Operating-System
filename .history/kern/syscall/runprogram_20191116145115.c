@@ -70,7 +70,10 @@ runprogram(char *progname)
 	if (result) {
 		return result;
 	}
-	
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL);
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -109,8 +112,8 @@ runprogram(char *progname)
   
 vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
-for (int i = args_count - 1; i >= 0; i--) {
-  size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
+  for (int i = args_count - 1; i >= 0; i--) {
+    size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
     stackptr -= args_size;
     int err = copyout((void *) args[i], (userptr_t) stackptr, args_size);
     if (err) {

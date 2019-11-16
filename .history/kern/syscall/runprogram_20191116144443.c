@@ -70,7 +70,10 @@ runprogram(char *progname)
 	if (result) {
 		return result;
 	}
-	
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL);
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -101,6 +104,7 @@ runprogram(char *progname)
 	}
 #if OPT_A2
   
+// count number of args and copy into kernel
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
@@ -109,10 +113,10 @@ runprogram(char *progname)
   
 vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
-for (int i = args_count - 1; i >= 0; i--) {
-  size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
+  for (int i = args_count - 1; i >= 0; i--) {
+    size_t args_size =  ROUNDUP(strlen(args_kernel[i]) + 1, 4);
     stackptr -= args_size;
-    int err = copyout((void *) args[i], (userptr_t) stackptr, args_size);
+    int err = copyout((void *) args_kernel[i], (userptr_t) stackptr, args_size);
     if (err) {
         panic("There was an issue with copy!");
     }
@@ -121,14 +125,30 @@ for (int i = args_count - 1; i >= 0; i--) {
   
   args_ptr[args_count] = (vaddr_t) NULL;
 
- 
- for (int i = args_count; i >= 0; i--) {
-    size_t args_ptr_size = sizeof(vaddr_t);
-    stackptr -= args_ptr_size;
-    int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
+
+
+  vaddr_t *stack_args = kmalloc((args_count + 1) * sizeof(vaddr_t));
+
+  for (int i = args_count - 1; i >= 0; i--) {
+    size_t arg_length = ROUNDUP(strlen(args[i]) + 1, 4);
+    size_t arg_size = arg_length * sizeof(char);
+    stackptr -= arg_size;
+    int err = copyout((void *) args[i], (userptr_t) stackptr, arg_length);
     if (err) {
         panic("There was an issue with copy!");
-      }
+    }
+    stack_args[i] = stackptr;
+  }
+
+  stack_args[args_count] = (vaddr_t) NULL;
+
+  for (int i = args_count; i >= 0; i--) {
+    size_t str_pointer_size = sizeof(vaddr_t);
+    stackptr -= str_pointer_size;
+    int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, str_pointer_size);
+    if (err) {
+        panic("There was an issue with copy!");
+    }
   }
 
   as_destroy(old_add);

@@ -70,7 +70,10 @@ runprogram(char *progname)
 	if (result) {
 		return result;
 	}
-	
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL);
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -79,7 +82,7 @@ runprogram(char *progname)
 	}
 
 	/* Switch to it and activate it. */
-	struct addrspace * old_add = curproc_setas(as);
+	struct addrspace * as_old = curproc_setas(as);
 	as_activate();
 
 	/* Load the executable. */
@@ -101,40 +104,38 @@ runprogram(char *progname)
 	}
 #if OPT_A2
   
+// count number of args and copy into kernel
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
   }
   //HARD PART: COPY ARGS TO USER STACK
-  
-vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
-
-for (int i = args_count - 1; i >= 0; i--) {
-  size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
-    stackptr -= args_size;
-    int err = copyout((void *) args[i], (userptr_t) stackptr, args_size);
-    if (err) {
-        panic("There was an issue with copy!");
+  char ** args_kernel = args;
+  vaddr_t temp_stack_ptr = stackptr;
+  vaddr_t *stack_args = kmalloc((args_count + 1) * sizeof(vaddr_t));
+ //size_t actual;
+  for (int i = args_count; i >= 0; i--) {
+    if (i == args_count) {
+      stack_args[i] = (vaddr_t) NULL;
+      continue;
     }
-    args_ptr[i] = stackptr;
-  }
-  
-  args_ptr[args_count] = (vaddr_t) NULL;
-
- 
- for (int i = args_count; i >= 0; i--) {
-    size_t args_ptr_size = sizeof(vaddr_t);
-    stackptr -= args_ptr_size;
-    int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-    if (err) {
-        panic("There was an issue with copy!");
-      }
+    size_t arg_length = ROUNDUP(strlen(args_kernel[i]) + 1, 4);
+    size_t arg_size = arg_length * sizeof(char);
+    temp_stack_ptr -= arg_size;
+    int err = copyout((void *) args_kernel[i], (userptr_t) temp_stack_ptr, arg_length);
+    KASSERT(err == 0);
+    stack_args[i] = temp_stack_ptr;
   }
 
-  as_destroy(old_add);
+  for (int i = args_count; i >= 0; i--) {
+    size_t str_pointer_size = sizeof(vaddr_t);
+    temp_stack_ptr -= str_pointer_size;
+    int err = copyout((void *) &stack_args[i], (userptr_t) temp_stack_ptr, str_pointer_size);
+    KASSERT(err == 0);
+  }
   
-enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
-  
+	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
+  as_destroy(as_old);
 #else
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,

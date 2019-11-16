@@ -255,7 +255,10 @@ int sys_execv(const char * prog_name, char ** args)
 	if (result) {
 		return result;
 	}
-  
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL); 
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {

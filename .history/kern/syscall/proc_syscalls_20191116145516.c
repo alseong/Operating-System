@@ -213,9 +213,11 @@ int sys_execv(const char * prog_name, char ** args)
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
 	int result;
+  //size_t program_actual;
+  //size_t args_actual;
   (void)args;
 
-  //COPY PROGRAM TO FROM USER TO KERNEL
+  // copy over program name into kernel space
   size_t prog_size = (strlen(prog_name) + 1) * sizeof(char);
   char * prog_kern = kmalloc(prog_size);
   if (prog_kern == NULL) {
@@ -225,16 +227,18 @@ int sys_execv(const char * prog_name, char ** args)
   if (err) {
     panic("There was an issue with copy!");
   }
-  
-  //COUNT # OF ARGS
+
+
+  // count number of args and copy into kernel
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
   }
-
-  //COPY ARGS TO KERNEL
+  
+  // copy program args into kernel
   size_t args_array_size = (args_count + 1) * sizeof(char *);
   char ** args_kernel = kmalloc(args_array_size);
+
   for (int i = 0; i < args_count; i++) {
       size_t arg_size = (strlen(args[i]) + 1) * sizeof(char);
       args_kernel[i] = kmalloc(arg_size);
@@ -246,16 +250,18 @@ int sys_execv(const char * prog_name, char ** args)
         panic("There was an issue with copy!");
       }
   }
+  
   args_kernel[args_count] = NULL;
-
-  //FROM RUN_PROGRAM
 
 	/* Open the file. */
 	result = vfs_open(prog_kern, O_RDONLY, 0, &v);
 	if (result) {
 		return result;
 	}
-  
+
+	/* We should be a new process. */
+	/* KASSERT(curproc_getas() == NULL); */
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -285,8 +291,7 @@ int sys_execv(const char * prog_name, char ** args)
 		return result;
 	}
 
-  //COPY ARGS TO USER STACK
-
+  //HARD PART: COPY ARGS TO USER STACK
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
   for (int i = args_count - 1; i >= 0; i--) {
@@ -311,17 +316,13 @@ int sys_execv(const char * prog_name, char ** args)
   }
 
   //NOW IT IS SAFE TO DELETE OLD ADDRESS
-
   as_destroy(old_add);
-
-  //FREE NECESSARY THINGS
   kfree(prog_kern);
-  for (int i = 0; i <= args_count; i++) {
-    kfree(args_kernel[i]);
-  }
+  // for (int i = 0; i <= args_count; i++) {
+  //   kfree(args_kernel[i]);
+  // }
   kfree(args_kernel);
 
-  //FROM RUN_PROGRAM - modified
 	/* Warp to user mode. */
 	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
 

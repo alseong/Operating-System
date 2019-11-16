@@ -255,7 +255,10 @@ int sys_execv(const char * prog_name, char ** args)
 	if (result) {
 		return result;
 	}
-  
+
+	/* We should be a new process. */
+	KASSERT(curproc_getas() == NULL); 
+
 	/* Create a new address space. */
 	as = as_create();
 	if (as ==NULL) {
@@ -286,9 +289,7 @@ int sys_execv(const char * prog_name, char ** args)
 	}
 
   //COPY ARGS TO USER STACK
-
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
-
   for (int i = args_count - 1; i >= 0; i--) {
     size_t args_size =  ROUNDUP(strlen(args_kernel[i]) + 1, 4);
     stackptr -= args_size;
@@ -311,17 +312,13 @@ int sys_execv(const char * prog_name, char ** args)
   }
 
   //NOW IT IS SAFE TO DELETE OLD ADDRESS
-
   as_destroy(old_add);
-
-  //FREE NECESSARY THINGS
   kfree(prog_kern);
-  for (int i = 0; i <= args_count; i++) {
-    kfree(args_kernel[i]);
-  }
+  // for (int i = 0; i <= args_count; i++) {
+  //   kfree(args_kernel[i]);
+  // }
   kfree(args_kernel);
 
-  //FROM RUN_PROGRAM - modified
 	/* Warp to user mode. */
 	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
 
