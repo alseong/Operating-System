@@ -110,18 +110,18 @@ runprogram(char *progname)
   }
 
   // copy args to user stack
-
+  
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
   for (int i = args_count - 1; i >= 0; i--) {
 	size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
-	stackptr -= args_size;
-	result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
-	if (result) {
-		return result;
-	}
-	args_ptr[i] = stackptr;
-  }
+	    stackptr -= args_size;
+		int result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
+		if (result) {
+			panic("There was an issue with copy!");
+		}
+		args_ptr[i] = stackptr;
+   }
   
   args_ptr[args_count] = (vaddr_t) NULL;
 
@@ -129,9 +129,9 @@ runprogram(char *progname)
   for (int i = args_count; i >= 0; i--) {
 	size_t args_ptr_size = sizeof(vaddr_t);
 	stackptr -= args_ptr_size;
-	result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-	if (result) {
-	  return result;
+	int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
+	if (err) {
+		panic("There was an issue with copy!");
 	}
   }
 

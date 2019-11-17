@@ -11,10 +11,14 @@
 #include <copyinout.h>
 #include <kern/errno.h>
 #include <mips/trapframe.h>
+
+#include <limits.h>
 #include <kern/fcntl.h>
 #include <vm.h>
 #include <vfs.h>
 #include <test.h>
+
+
 #include "opt-A2.h"
 
 #if OPT_A2
@@ -205,7 +209,6 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
-#if OPT_A2
 int sys_execv(const char * prog_name, char ** args)
 {
 	struct addrspace *as;
@@ -213,40 +216,38 @@ int sys_execv(const char * prog_name, char ** args)
 	vaddr_t entrypoint, stackptr;
 	int result;
 
-  //1. copying program name to the kernel
-  size_t prog_size = (strlen(prog_name) + 1) * sizeof(char);
-  char * prog_kern = kmalloc(prog_size);
+  //COPY PROGRAM TO FROM USER TO KERNEL
+  char * prog_kern = kmalloc(sizeof(char) * PATH_MAX);
   if (prog_kern == NULL) {
     panic("Program_kern is null!");
   }
-  result = copyinstr((const_userptr_t) prog_name, (void *) prog_kern, prog_size, NULL);
-  if (result) {
-    return result;
+  int err = copyinstr((const_userptr_t) prog_name, (void *) prog_kern, PATH_MAX, NULL);
+  if (err) {
+    return err;
   }
   
-  //2. count the number of args (NULL)
+  //COUNT # OF ARGS
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
   }
 
-  //3. copy args to the kernel
-  size_t args_array_size = (args_count + 1) * sizeof(char *);
-  char ** args_kernel = kmalloc(args_array_size);
+  //COPY ARGS TO KERNEL
+  char ** args_kernel = kmalloc((args_count + 1) * sizeof(char *));
   for (int i = 0; i < args_count; i++) {
     size_t arg_size = (strlen(args[i]) + 1) * sizeof(char);
-    args_kernel[i] = kmalloc(arg_size);
+    args_kernel[i] = kmalloc(sizeof(char) * PATH_MAX);
     if (args_kernel[i] == NULL) {
       panic("args_kernel index is NULL! \n");
     }
-    result = copyinstr((const_userptr_t) args[i], (void *) args_kernel[i], arg_size, NULL);
-    if (result) {
-      return result;
+    int err = copyinstr((const_userptr_t) args[i], (void *) args_kernel[i], PATH_MAX, NULL);
+    if (err) {
+      return err;
     }
   }
   args_kernel[args_count] = NULL;
 
-  //same as run_program
+  //FROM RUN_PROGRAM
 
 	/* Open the file. */
 	result = vfs_open(prog_kern, O_RDONLY, 0, &v);
@@ -283,20 +284,16 @@ int sys_execv(const char * prog_name, char ** args)
 		return result;
 	}
 
-  //4. copy args to the user stack 
+  //COPY ARGS TO USER STACK
 
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
-
-  if (args_ptr == NULL) {
-    panic("args_ptr is NULL!");
-  }
 
   for (int i = args_count - 1; i >= 0; i--) {
     size_t args_size =  ROUNDUP(strlen(args_kernel[i]) + 1, 4);
     stackptr -= args_size;
-    result = copyoutstr((void *) args_kernel[i], (userptr_t) stackptr, args_size, NULL);
-    if (result) {
-      return result;
+    int err = copyoutstr((void *) args_kernel[i], (userptr_t) stackptr, args_size, NULL);
+    if (err) {
+      panic("There was an issue with copy!");
     }
     args_ptr[i] = stackptr;
   }
@@ -306,22 +303,24 @@ int sys_execv(const char * prog_name, char ** args)
   for (int i = args_count; i >= 0; i--) {
     size_t args_ptr_size = sizeof(vaddr_t);
     stackptr -= args_ptr_size;
-    result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-    if (result) {
-      return result;
-    }
+    int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
+    if (err) {
+        panic("There was an issue with copy!");
+      }
   }
 
-  //5. delete old add and free
+  //NOW IT IS SAFE TO DELETE OLD ADDRESS AND FREE
 
   as_destroy(old_add);
   kfree(prog_kern);
 
-  for (int i = 0; i <= args_count; i++) {
+  for (size_t i = 0; i <= args_count; i++) {
     kfree(args_kernel[i]);
   }
 
   kfree(args_kernel);
+
+  //FROM RUN_PROGRAM - modified
 
 	/* Warp to user mode. */
 	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
@@ -331,5 +330,4 @@ int sys_execv(const char * prog_name, char ** args)
   return EINVAL;
 
 }
-#endif
 

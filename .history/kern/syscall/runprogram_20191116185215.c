@@ -60,10 +60,10 @@ runprogram(char *progname, char ** args)
 runprogram(char *progname)
 #endif
 {
-    struct addrspace *as;
-    struct vnode *v;
-    vaddr_t entrypoint, stackptr;
-	int result;
+  struct addrspace *as;
+  struct vnode *v;
+  vaddr_t entrypoint, stackptr;
+    int result;
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -99,29 +99,27 @@ runprogram(char *progname)
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
-
 #if OPT_A2
 
-  // count number of args
+  //COUNT # OF ARGS
 
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
   }
 
-  // copy args to user stack
-
+  //COPY ARGS TO USER STACK
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
   for (int i = args_count - 1; i >= 0; i--) {
 	size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
-	stackptr -= args_size;
-	result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
-	if (result) {
-		return result;
-	}
-	args_ptr[i] = stackptr;
-  }
+	    stackptr -= args_size;
+		int result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
+		if (result) {
+			panic("There was an issue with copy!");
+		}
+		args_ptr[i] = stackptr;
+   }
   
   args_ptr[args_count] = (vaddr_t) NULL;
 
@@ -129,9 +127,9 @@ runprogram(char *progname)
   for (int i = args_count; i >= 0; i--) {
 	size_t args_ptr_size = sizeof(vaddr_t);
 	stackptr -= args_ptr_size;
-	result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-	if (result) {
-	  return result;
+	int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size, NULL);
+	if (err) {
+		panic("There was an issue with copy!");
 	}
   }
 

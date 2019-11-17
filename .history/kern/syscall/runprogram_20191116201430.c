@@ -131,7 +131,7 @@ runprogram(char *progname)
 	stackptr -= args_ptr_size;
 	result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
 	if (result) {
-	  return result;
+		panic("There was an issue with copy!");
 	}
   }
 

@@ -205,7 +205,6 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
-#if OPT_A2
 int sys_execv(const char * prog_name, char ** args)
 {
 	struct addrspace *as;
@@ -331,5 +330,4 @@ int sys_execv(const char * prog_name, char ** args)
   return EINVAL;
 
 }
-#endif
 

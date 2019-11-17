@@ -60,9 +60,9 @@ runprogram(char *progname, char ** args)
 runprogram(char *progname)
 #endif
 {
-    struct addrspace *as;
-    struct vnode *v;
-    vaddr_t entrypoint, stackptr;
+	struct addrspace *as;
+	struct vnode *v;
+	vaddr_t entrypoint, stackptr;
 	int result;
 
 	/* Open the file. */
@@ -99,54 +99,58 @@ runprogram(char *progname)
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
-
 #if OPT_A2
-
-  // count number of args
-
+  
   int args_count = 0;
   while (args[args_count] != NULL) {
       args_count++;
   }
+  
+vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
-  // copy args to user stack
+for (int i = args_count - 1; i >= 0; i--) {
+  size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
+    stackptr -= args_size;
+    int result = copyout((void *) args[i], (userptr_t) stackptr, args_size);
+    if (result) {
+        panic("There was an issue with copy!");
+    }
+    args_ptr[i] = stackptr;
+  }
 
-  vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
-
-  for (int i = args_count - 1; i >= 0; i--) {
-	size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
-	stackptr -= args_size;
-	result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
-	if (result) {
-		return result;
-	}
-	args_ptr[i] = stackptr;
+  for (int i = args_count - 1; i < args_count; i++) {
+  size_t args_size =  ROUNDUP(strlen(args[i]) + 1, 4);
+    stackptr -= args_size;
+    int result = copyout((void *) args[i], (userptr_t) stackptr, args_size);
+    if (result) {
+        panic("There was an issue with copy!");
+    }
+    args_ptr[i] = stackptr;
   }
   
   args_ptr[args_count] = (vaddr_t) NULL;
 
  
-  for (int i = args_count; i >= 0; i--) {
-	size_t args_ptr_size = sizeof(vaddr_t);
-	stackptr -= args_ptr_size;
-	result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-	if (result) {
-	  return result;
-	}
+ for (int i = args_count; i >= 0; i--) {
+    size_t args_ptr_size = sizeof(vaddr_t);
+    stackptr -= args_ptr_size;
+    int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
+    if (err) {
+        panic("There was an issue with copy!");
+      }
   }
 
-  //NOW IT IS SAFE TO DELETE OLD ADDRESS
   as_destroy(old_add);
   
-  enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
+enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
   
-  #else
+#else
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  stackptr, entrypoint);
-  #endif
+#endif
 
-  /* enter_new_process does not return. */
-  panic("enter_new_process returned\n");
-  return EINVAL;
+	/* enter_new_process does not return. */
+	panic("enter_new_process returned\n");
+	return EINVAL;
 }

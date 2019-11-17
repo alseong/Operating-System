@@ -118,7 +118,7 @@ runprogram(char *progname)
 	stackptr -= args_size;
 	result = copyoutstr((void *) args[i], (userptr_t) stackptr, args_size, NULL);
 	if (result) {
-		return result;
+		panic("There was an issue with copy!");
 	}
 	args_ptr[i] = stackptr;
   }
@@ -129,9 +129,9 @@ runprogram(char *progname)
   for (int i = args_count; i >= 0; i--) {
 	size_t args_ptr_size = sizeof(vaddr_t);
 	stackptr -= args_ptr_size;
-	result = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
-	if (result) {
-	  return result;
+	int err = copyout((void *) &args_ptr[i], (userptr_t) stackptr, args_ptr_size);
+	if (err) {
+		panic("There was an issue with copy!");
 	}
   }
 

@@ -205,7 +205,6 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
-#if OPT_A2
 int sys_execv(const char * prog_name, char ** args)
 {
 	struct addrspace *as;
@@ -230,7 +229,7 @@ int sys_execv(const char * prog_name, char ** args)
       args_count++;
   }
 
-  //3. copy args to the kernel
+  //COPY ARGS TO KERNEL
   size_t args_array_size = (args_count + 1) * sizeof(char *);
   char ** args_kernel = kmalloc(args_array_size);
   for (int i = 0; i < args_count; i++) {
@@ -246,7 +245,7 @@ int sys_execv(const char * prog_name, char ** args)
   }
   args_kernel[args_count] = NULL;
 
-  //same as run_program
+  //FROM RUN_PROGRAM
 
 	/* Open the file. */
 	result = vfs_open(prog_kern, O_RDONLY, 0, &v);
@@ -283,7 +282,7 @@ int sys_execv(const char * prog_name, char ** args)
 		return result;
 	}
 
-  //4. copy args to the user stack 
+  //COPY ARGS TO USER STACK
 
   vaddr_t *args_ptr = kmalloc((args_count + 1) * sizeof(vaddr_t));
 
@@ -312,7 +311,7 @@ int sys_execv(const char * prog_name, char ** args)
     }
   }
 
-  //5. delete old add and free
+  //NOW IT IS SAFE TO DELETE OLD ADDRESS AND FREE
 
   as_destroy(old_add);
   kfree(prog_kern);
@@ -323,6 +322,8 @@ int sys_execv(const char * prog_name, char ** args)
 
   kfree(args_kernel);
 
+  //FROM RUN_PROGRAM - modified
+
 	/* Warp to user mode. */
 	enter_new_process(args_count, (userptr_t) stackptr, stackptr, entrypoint);
 
@@ -331,5 +332,4 @@ int sys_execv(const char * prog_name, char ** args)
   return EINVAL;
 
 }
-#endif
 
