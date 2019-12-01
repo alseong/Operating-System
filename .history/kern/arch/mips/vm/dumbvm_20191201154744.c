@@ -172,7 +172,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	#if OPT_A3
 		bool code_seg = false; //flag to indicate only text/code segment
-		bool loadelf_complete = as->loadelf_complete;
+		//bool loadelf_complete = as->loadelf_complete;
 	#endif
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) { //if in text/code seg, set flag to true

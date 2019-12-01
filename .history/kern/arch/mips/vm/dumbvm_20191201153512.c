@@ -121,9 +121,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
-		#if OPT_A3
-			return EFAULT;
-		#endif
+		// #if OPT_A3
+		// 	return EFAULT;
+		// #endif
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -193,7 +193,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	/* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
-    //set the read only flag???
+
 	/* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
@@ -216,7 +216,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     #if OPT_A3
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-		if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
+		//if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
 		tlb_random(ehi, elo);
 		splx(spl);
 		return 0;

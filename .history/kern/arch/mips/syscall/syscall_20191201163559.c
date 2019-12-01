@@ -38,7 +38,6 @@
 #include <addrspace.h>
 #include "opt-A2.h"
 #include "opt-A3.h"
-#include <kern/wait.h>
 
 
 /*

@@ -42,7 +42,6 @@
 #include <addrspace.h>
 #include <proc.h>
 #include "opt-A3.h"
-#include <kern/wait.h>
 
 
 

@@ -17,7 +17,6 @@
 #include <test.h>
 #include "opt-A2.h"
 #include "opt-A3.h"
-#include <kern/wait.h>
 
 #if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval) {

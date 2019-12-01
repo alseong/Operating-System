@@ -16,8 +16,6 @@
 #include <vfs.h>
 #include <test.h>
 #include "opt-A2.h"
-#include "opt-A3.h"
-#include <kern/wait.h>
 
 #if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval) {
@@ -70,12 +68,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval) {
 //terminate the calling process
 //passed parameter - if parent is alive, keep parameter around as parent can call waitpid on you
 //freely delete etire processs only if parent is not alive / zombie
-#if OPT_A3 
-void sys__exit(int exitcode, int exit_status)
-#else
-void sys__exit(int exitcode)
-#endif 
-{
+void sys__exit(int exitcode) {
 
   struct addrspace *as;
   struct proc *p = curproc;
@@ -87,7 +80,7 @@ void sys__exit(int exitcode)
   lock_acquire(p->pLock);
     p->zombie = true;
     #if OPT_A3
-    p->exitCode = (exit_status == __WSTOPPED) ? _MKWAIT_STOP(exitcode): _MKWAIT_EXIT(exitcode);
+    curr_proc->exit_code = (exitstatus == __WSTOPPED) ? _MKWAIT_STOP(exitcode): _MKWAIT_EXIT(exitcode);
     #else
     p->exitCode = _MKWAIT_EXIT(exitcode);
     #endif

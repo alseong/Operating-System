@@ -42,7 +42,6 @@
 #include <addrspace.h>
 #include <proc.h>
 #include "opt-A3.h"
-#include <kern/wait.h>
 
 
 
@@ -121,9 +120,24 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 
 	#if OPT_A3
 
-// KILL THE PROCESS INSTEAD OF PANICING
+//KILL THE PROCESS INSTEAD OF PANICING
 
-		sys__exit(sig, __WSTOPPED);
+struct addrspace *as;
+		struct proc *p = curproc;
+
+		// deactivate and destroy as
+		as_deactivate();
+		as = curproc_setas(NULL);
+		as_destroy(as);
+
+		// detach thread from proc
+		proc_remthread(curthread);
+
+		// destroy proc
+		proc_destroy(p);
+
+		// exit thread
+		thread_exit();
 
 #else
 

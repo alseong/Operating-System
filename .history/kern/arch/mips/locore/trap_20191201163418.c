@@ -42,7 +42,6 @@
 #include <addrspace.h>
 #include <proc.h>
 #include "opt-A3.h"
-#include <kern/wait.h>
 
 
 
@@ -123,7 +122,7 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 
 // KILL THE PROCESS INSTEAD OF PANICING
 
-		sys__exit(sig, __WSTOPPED);
+		sys_exit(sig, __WSTOPPED);
 
 #else
 

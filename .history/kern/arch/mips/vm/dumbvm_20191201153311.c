@@ -121,9 +121,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
-		#if OPT_A3
-			return EFAULT;
-		#endif
+		// #if OPT_A3
+		// 	return EFAULT;
+		// #endif
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -172,7 +172,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	#if OPT_A3
 		bool code_seg = false; //flag to indicate only text/code segment
-		bool loadelf_complete = as->loadelf_complete;
+		//bool loadelf_complete = as->loadelf_complete;
 	#endif
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) { //if in text/code seg, set flag to true
@@ -193,7 +193,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	/* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
-    //set the read only flag???
+
 	/* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
@@ -216,7 +216,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     #if OPT_A3
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-		if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
+		//if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
 		tlb_random(ehi, elo);
 		splx(spl);
 		return 0;
@@ -239,9 +239,9 @@ as_create(void)
 	as->as_npages2 = 0;
 	as->as_stackpbase = 0;
     
-	#if OPT_A3
-		as->loadelf_complete = false;
-	#endif
+	// #if OPT_A3
+	// 	as->loadelf_complete = false;
+	// #endif
 
 	return as;
 }

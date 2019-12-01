@@ -178,7 +178,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	if (faultaddress >= vbase1 && faultaddress < vtop1) { //if in text/code seg, set flag to true
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
 		#if OPT_A3
-		code_seg = true; 
+		code_seg = true; //lknl
 		#endif
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
@@ -193,7 +193,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	/* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
-    //set the read only flag???
+
 	/* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
@@ -216,7 +216,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     #if OPT_A3
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-		if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
+		//if (code_seg && loadelf_complete) elo &= ~TLBLO_DIRTY;
 		tlb_random(ehi, elo);
 		splx(spl);
 		return 0;

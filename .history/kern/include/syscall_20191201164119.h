@@ -29,7 +29,7 @@
 
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
-#include "opt-A3.h"
+#include  "opt-A3.h"
 
 
 struct trapframe; /* from <machine/trapframe.h> */

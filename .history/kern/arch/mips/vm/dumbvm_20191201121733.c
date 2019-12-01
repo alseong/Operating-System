@@ -121,9 +121,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
-		#if OPT_A3
-			return EFAULT;
-		#endif
+		/* We always create pages read-write, so we can't get this */
+		panic("dumbvm: got VM_FAULT_READONLY\n");
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -178,7 +177,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	if (faultaddress >= vbase1 && faultaddress < vtop1) { //if in text/code seg, set flag to true
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
 		#if OPT_A3
-		code_seg = true; 
+		code_seg = true;
 		#endif
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
@@ -193,7 +192,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	/* make sure it's page-aligned */
 	KASSERT((paddr & PAGE_FRAME) == paddr);
-    //set the read only flag???
+
 	/* Disable interrupts on this CPU while frobbing the TLB. */
 	spl = splhigh();
 
